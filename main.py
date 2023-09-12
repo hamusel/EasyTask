@@ -1,14 +1,26 @@
+import os
 from tkinter import *
 import sqlite3
 from datetime import date
+import atexit
 
+current_oid = 0
 # SQL Connexion
-conn = sqlite3.connect("EasyTask.db")
-cur = conn.cursor()
+if not os.path.isfile('EasyTask.db'):
+    conn = sqlite3.connect("EasyTask.db")
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE tasks(name TEXT, difficulty INTEGER)")
+else:
+    conn = sqlite3.connect("EasyTask.db")
+    cur = conn.cursor()
+    fhandler1 = open('record.txt', 'r')
+    current_oid = int(fhandler1.read())
 
-# Create main table
-cur.execute("DROP TABLE IF EXISTS tasks")
-cur.execute("CREATE TABLE tasks(name TEXT, difficulty INTEGER)")
+def write_record():
+    fhandler = open('record.txt', 'w')
+    fhandler.write(str(current_oid))
+    fhandler.close()
+
 
 # GUI
 root = Tk()
@@ -17,10 +29,13 @@ root.geometry("400x400+1000+300")
 frame = Frame(root)
 frame.pack(pady=10)
 
-current_oid=0
+#fhandler1 = open('record.txt', 'r')
+#current_oid=fhandler1.read()
+#print(current_oid)
+
 def addEntry():
     global current_oid
-    if nameEntry.get()=="" or difficultyEntry=="":
+    if not nameEntry.get() or not difficultyEntry.get():
         nameEntry.delete(0,END)
         difficultyEntry.delete(0,END)
         raise Exception('wrong entry!')
@@ -44,8 +59,8 @@ def showEntry():
     global current_oid
     cur.execute("SELECT * FROM tasks WHERE oid="+str(current_oid))
     e = cur.fetchone()
-    d['myLbl{}'.format(current_oid)] = Label(frame, text=str(e[0]) + " " + str(e[1]) + " " + str(now))
-    d['myLbl{}'.format(current_oid)].grid(column=0, row=current_oid + 3, columnspan=2, sticky='w')
+    d[f'myLbl{current_oid}'] = Label(frame, text=f'{e[0]} {e[1]} {now}')
+    d[f'myLbl{current_oid}'].grid(column=0, row=current_oid + 3, columnspan=2, sticky='w')
 
 
 def deleteEntry():
@@ -66,7 +81,6 @@ def deleteEntry():
 
 labelNames = ["task name", "difficulty"]
 
-
 labelNamesCounter = 0
 for label in labelNames:
     label = Label(frame, text=label)
@@ -84,5 +98,6 @@ addButton.grid(column=0, row=2, columnspan=2)
 deleteButton= Button(frame, text="Delete last entry", command=deleteEntry, width=25, state="disabled")
 deleteButton.grid(column=0, row=3, columnspan=2)
 
+atexit.register(write_record)
 
 root.mainloop()
