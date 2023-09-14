@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import messagebox
 import os
 import sqlite3
 from datetime import date
@@ -16,17 +17,12 @@ else:
     fhandler1 = open('record.txt', 'r')
     current_oid = int(fhandler1.read())
 
-
-root = Tk()
-root.title("EasyTask")
-root.geometry("400x400+1000+300")
-frame = Frame(root)
-frame.pack(pady=10)
-
+#Functions
 def write_record():
     fhandler = open('record.txt', 'w')
     fhandler.write(str(current_oid))
     fhandler.close()
+
 
 def delete_check():
     global current_oid
@@ -37,13 +33,22 @@ def delete_check():
 
 def addEntry():
     global current_oid
+
+    try:
+        int(difficultyEntry.get())
+    except:
+        messagebox.showerror("Error", 'The \'difficulty\' must be a number!')
+        raise Exception("insert number!")
+
+    if current_oid>10:
+        messagebox.showerror('Error', 'Limit of entries achieved!')
+        raise Exception('limit achieved')
+
     if not nameEntry.get() or not difficultyEntry.get():
         nameEntry.delete(0, END)
         difficultyEntry.delete(0, END)
+        messagebox.showerror('Error', 'The fields can\'t be empty!')
         raise Exception('wrong entry!')
-
-    elif type(int(difficultyEntry.get())) != int:
-        raise Exception("insert number!")
 
     else:
         cur.execute("INSERT INTO tasks(name, difficulty) VALUES (?,?)", (nameEntry.get(), difficultyEntry.get()))
@@ -81,7 +86,6 @@ def show_all():
 def deleteEntry():
     global deleteButton
     global current_oid
-    print(current_oid)
     try:
         d['myLbl' + str(current_oid)].destroy()
     except:
@@ -93,8 +97,15 @@ def deleteEntry():
         conn.commit()
         delete_check()
 
+#GUI
+root = Tk()
+root.title("EasyTask")
+root.geometry("400x400+1000+300")
+frame = Frame(root)
+frame.pack(pady=10)
 
-labelNames = ["task name", "difficulty"]
+
+labelNames = ["task name", "difficulty"] #should be a dic
 
 labelNamesCounter = 0
 for label in labelNames:
@@ -109,13 +120,14 @@ difficultyEntry.grid(column=1, row=1)
 
 addButton = Button(frame, text="Add entry", command=addEntry, width=25)
 addButton.grid(column=0, row=2, columnspan=2)
-
-deleteButton = Button(frame, text="Delete last entry", command=deleteEntry, width=25, state="active")
+deleteButton = Button(frame, text="Delete last entry", command=deleteEntry, width=25)
 deleteButton.grid(column=0, row=3, columnspan=2)
 
+
+#Functions for starting
 delete_check()
 if os.path.isfile('record.txt'):
     show_all()
-atexit.register(write_record)
 
+atexit.register(write_record)
 root.mainloop()
