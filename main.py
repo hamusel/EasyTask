@@ -26,45 +26,48 @@ def write_record():
 
 def delete_check():
     global current_oid
-    global deleteButton
+    global delete_button
     if current_oid == 0:
-        deleteButton.config(state='disabled')
+        delete_button.config(state='disabled')
 
 
-def addEntry():
+def add_entry():
     global current_oid
 
     try:
-        int(difficultyEntry.get())
+        int(difficulty_entry.get())
     except:
         messagebox.showerror("Error", 'The \'difficulty\' must be a number!')
         raise Exception("insert number!")
+
+    if len(name_entry.get()) > 20:
+        messagebox.showerror("Error", "Your entry is too long!")
+        raise Exception("too many characters")
 
     if current_oid>10:
         messagebox.showerror('Error', 'Limit of entries achieved!')
         raise Exception('limit achieved')
 
-    if not nameEntry.get() or not difficultyEntry.get():
-        nameEntry.delete(0, END)
-        difficultyEntry.delete(0, END)
+    if not name_entry.get() or not difficulty_entry.get():
+        name_entry.delete(0, END)
+        difficulty_entry.delete(0, END)
         messagebox.showerror('Error', 'The fields can\'t be empty!')
         raise Exception('wrong entry!')
 
     else:
-        cur.execute("INSERT INTO tasks(name, difficulty) VALUES (?,?)", (nameEntry.get(), difficultyEntry.get()))
-        nameEntry.delete(0, END)
-        difficultyEntry.delete(0, END)
+        cur.execute("INSERT INTO tasks(name, difficulty) VALUES (?,?)", (name_entry.get(), difficulty_entry.get()))
+        name_entry.delete(0, END)
+        difficulty_entry.delete(0, END)
         conn.commit()
         current_oid += 1
         if current_oid > 0:
-            deleteButton.config(state="active")
-        showEntry()
+            delete_button.config(state="active")
+        show_entry()
 
 
 d = dict()
-def showEntry():
+def show_entry():
     now = date.today()
-    # global current_oid
     cur.execute("SELECT * FROM tasks WHERE oid=" + str(current_oid))
     e = cur.fetchone()
     d[f'myLbl{current_oid}'] = Label(frame, text=f'{e[0]} {e[1]} {now}')
@@ -83,8 +86,8 @@ def show_all():
         counter += 1
 
 
-def deleteEntry():
-    global deleteButton
+def delete_entry():
+    global delete_button
     global current_oid
     try:
         d['myLbl' + str(current_oid)].destroy()
@@ -113,15 +116,15 @@ for label in labelNames:
     label.grid(column=0, row=labelNamesCounter)
     labelNamesCounter += 1
 
-nameEntry = Entry(frame)
-nameEntry.grid(column=1, row=0)
-difficultyEntry = Entry(frame)
-difficultyEntry.grid(column=1, row=1)
+name_entry = Entry(frame)
+name_entry.grid(column=1, row=0)
+difficulty_entry = Entry(frame)
+difficulty_entry.grid(column=1, row=1)
 
-addButton = Button(frame, text="Add entry", command=addEntry, width=25)
-addButton.grid(column=0, row=2, columnspan=2)
-deleteButton = Button(frame, text="Delete last entry", command=deleteEntry, width=25)
-deleteButton.grid(column=0, row=3, columnspan=2)
+add_button = Button(frame, text="Add entry", command=add_entry, width=25)
+add_button.grid(column=0, row=2, columnspan=2)
+delete_button = Button(frame, text="Delete last entry", command=delete_entry, width=25)
+delete_button.grid(column=0, row=3, columnspan=2)
 
 
 #Functions for starting
@@ -131,3 +134,4 @@ if os.path.isfile('record.txt'):
 
 atexit.register(write_record)
 root.mainloop()
+
