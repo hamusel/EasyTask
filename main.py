@@ -14,7 +14,6 @@ def write_record():
     fhandler.write(str(database.current_oid))
     fhandler.close()
 
-
 def delete_check():
     global current_oid
     current_oid = database.current_oid
@@ -48,10 +47,9 @@ def add_entry():
         raise Exception('wrong entry!')
 
     else:
-        database.cur.execute("INSERT INTO tasks(name, difficulty) VALUES (?,?)", (name_entry.get(), difficulty_entry.get()))
+        database.insert(name_entry.get(), difficulty_entry.get())
         name_entry.delete(0, END)
         difficulty_entry.delete(0, END)
-        database.conn.commit()
         database.current_oid += 1
         if database.current_oid > 0:
             delete_button.config(state="active")
@@ -91,8 +89,7 @@ def delete_entry():
     database.current_oid -= 1
 
     if database.current_oid >= 0:
-        database.cur.execute("DELETE FROM tasks WHERE oid=(SELECT MAX(oid) FROM tasks)")
-        database.conn.commit()
+        database.delete_last_entry(current_oid)
         delete_check()
 
 #GUI
@@ -129,4 +126,3 @@ if os.path.isfile('record.txt'):
 
 atexit.register(write_record)
 root.mainloop()
-
