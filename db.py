@@ -16,8 +16,7 @@ class DB():
             self.current_oid = int(fhandler1.read())
 
     def insert(self, name, difficulty):
-        self.cur.execute("INSERT INTO tasks VALUES (?, ?)",
-                         (name, difficulty))
+        self.cur.execute("INSERT INTO tasks VALUES (?, ?)", (name, difficulty))
         self.conn.commit()
 
     def delete_last_entry(self, oid):
