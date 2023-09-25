@@ -1,12 +1,13 @@
-from tkinter import *
-from tkinter import messagebox
-from datetime import date
 import atexit
 import os
-import db
+import tkinter as tk
+from tkinter import messagebox
+from datetime import date
+from db import DB
+from tkinter import ttk
 
-# create DataBase by instantiating a new db Object
-database = db.DB()
+# create database by instantiating a new db Object
+database = DB()
 
 #Functions
 def write_record():
@@ -15,109 +16,100 @@ def write_record():
     fhandler.close()
 
 def delete_check():
-    global current_oid
-    current_oid = database.current_oid
     global delete_button
     if database.current_oid == 0:
         delete_button.config(state='disabled')
 
-
 def add_entry():
-    global current_oid
-    current_oid = database.current_oid
-
+    if not name_entry.get() or not difficulty_entry.get():
+        name_entry.delete(0, tk.END)
+        difficulty_entry.delete(0, tk.END)
+        messagebox.showerror('Error', 'The fields can\'t be empty!')
+        raise Exception('wrong entry!')
     try:
         int(difficulty_entry.get())
     except:
-        messagebox.showerror("Error", 'The \'difficulty\' must be a number!')
+        messagebox.showerror("Error", 'The \'Difficulty\' must be a number!')
         raise Exception("insert number!")
-
     if len(name_entry.get()) > 20:
         messagebox.showerror("Error", "Your entry is too long!")
         raise Exception("too many characters")
-
-    if database.current_oid>10:
+    if database.current_oid>100:
         messagebox.showerror('Error', 'Limit of entries achieved!')
         raise Exception('limit achieved')
-
-    if not name_entry.get() or not difficulty_entry.get():
-        name_entry.delete(0, END)
-        difficulty_entry.delete(0, END)
-        messagebox.showerror('Error', 'The fields can\'t be empty!')
-        raise Exception('wrong entry!')
-
     else:
         database.insert(name_entry.get(), difficulty_entry.get())
-        name_entry.delete(0, END)
-        difficulty_entry.delete(0, END)
+        name_entry.delete(0, tk.END)
+        difficulty_entry.delete(0, tk.END)
         database.current_oid += 1
         if database.current_oid > 0:
             delete_button.config(state="active")
         show_entry()
 
-
-d = dict()
+show_d = dict()
 def show_entry():
     now = date.today()
-    database.cur.execute("SELECT * FROM tasks WHERE oid=" + str(database.current_oid))
-    e = database.cur.fetchone()
-    d[f'myLbl{database.current_oid}'] = Label(frame, text=f'{e[0]} {e[1]} {now}')
-    d[f'myLbl{database.current_oid}'].grid(column=0, row=database.current_oid + 3, columnspan=2, sticky='w')
-
+    database.fetch_one()
+    show_d[f'myLbl{database.current_oid}'] = tk.Label(frame, text=f'{database.e[0]} {database.e[1]} @ {now}')
+    show_d[f'myLbl{database.current_oid}'].grid(column=0, row=database.current_oid + 3, columnspan=2)
+                                                #sticky='w')
 
 def show_all():
-    global current_oid
-    current_oid = database.current_oid
     now = date.today()
-    database.cur.execute("SELECT * FROM tasks")
-    entries = database.cur.fetchall()
+    database.fetch_all()
     counter = 1
-    for entry in entries:
-        d[f'myLbl{counter}'] = Label(frame, text=f'{entry[0]} {entry[1]} {now}')
-        d[f'myLbl{counter}'].grid(column=0, row=counter + 3, columnspan=2, sticky='w')
+    for entry in database.entries:
+        show_d[f'myLbl{counter}'] = tk.Label(frame, text=f'{entry[0]} {entry[1]} @ {now}')
+        show_d[f'myLbl{counter}'].grid(column=0, row=counter + 3, columnspan=2)
+                                       #, sticky='w')
         counter += 1
 
-
 def delete_entry():
-    global delete_button
-    global current_oid
-    current_oid = database.current_oid
     try:
-        d['myLbl' + str(database.current_oid)].destroy()
+        show_d['myLbl' + str(database.current_oid)].destroy()
     except:
         print("no entries to delete")
     database.current_oid -= 1
-
     if database.current_oid >= 0:
-        database.delete_last_entry(current_oid)
+        database.delete_last_entry(database.current_oid)
         delete_check()
 
 #GUI
-root = Tk()
+root = tk.Tk()
 root.title("EasyTask")
-root.geometry("400x400+1000+300")
-frame = Frame(root)
-frame.pack(pady=10)
+root.geometry("402x400")
+root.resizable(False, False)
 
+outside_frame = tk.Frame(root)
+outside_frame.pack(fill=tk.BOTH, expand =1)
 
-labelNames = ["task name", "difficulty"] #should be a dic
+canvas = tk.Canvas(outside_frame)
+canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-labelNamesCounter = 0
-for label in labelNames:
-    label = Label(frame, text=label)
-    label.grid(column=0, row=labelNamesCounter)
-    labelNamesCounter += 1
+scroll_bar = ttk.Scrollbar(outside_frame, orient=tk.VERTICAL, command=canvas.yview)
+scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-name_entry = Entry(frame)
+canvas.configure(yscrollcommand=scroll_bar.set)
+
+frame = tk.Frame(canvas)
+
+canvas.create_window((0,0), window=frame, anchor='nw')
+frame.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+task_name = tk.Label(frame, text='Task name')
+task_name.grid(column=0, row=0)
+difficulty = tk.Label(frame, text='Difficulty')
+difficulty.grid(column=0, row=1)
+
+name_entry = tk.Entry(frame, width=30)
 name_entry.grid(column=1, row=0)
-difficulty_entry = Entry(frame)
-difficulty_entry.grid(column=1, row=1)
+difficulty_entry = tk.Entry(frame, width=10)
+difficulty_entry.grid(column=1, row=1, sticky='w')
 
-add_button = Button(frame, text="Add entry", command=add_entry, width=25)
-add_button.grid(column=0, row=2, columnspan=2)
-delete_button = Button(frame, text="Delete last entry", command=delete_entry, width=25)
-delete_button.grid(column=0, row=3, columnspan=2)
-
+add_button = tk.Button(frame, text="Add entry", command=add_entry, width=25)
+add_button.grid(column=1, row=2, columnspan=1)
+delete_button = tk.Button(frame, text="Delete last entry", command=delete_entry, width=25)
+delete_button.grid(column=1, row=3, columnspan=1)
 
 #Functions for starting
 delete_check()
